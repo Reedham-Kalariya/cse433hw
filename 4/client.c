@@ -5,7 +5,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <unistd.h>#include <openssl/evp.h>
+#include <unistd.h>
+#include <openssl/evp.h>
+#define KEY_LENGTH 32 // AES-256 requires a 32 byte key
+#define IV_LENGTH 12  // GCM 12 byte IV for efficiency and security
+#define TAG_LENGTH 16 // GCM tag length
 
 int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
                 unsigned char *aad, int aad_len,
@@ -56,4 +60,54 @@ output.
 /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
     return ciphertext_len;
+}
+
+int main(int argc, char * argv[]) {
+    int clientfd;
+    const int serverPort = 4096;
+
+    struct sockaddr_in server_addr;
+    int addrLength = sizeof(server_addr);
+
+    // Create socket
+    clientfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientfd < 0) {
+        printf("Socket creation failed\n");
+        return -1;
+    }
+
+    server_addr.sin_family = AF_INET;
+    inet_pton(AF_INET, "127.0.0.1", &(server_addr.sin_addr));
+    server_addr.sin_port = htons(serverPort);
+
+    // Connect to server
+    if (connect(clientfd, (struct sockaddr *)&server_addr, addrLength) < 0) {
+        printf("connection error\n");
+        return -1;
+    }
+
+    printf("Enter a message:\n");
+    unsigned char buffer[1024] = {0};
+    fgets((char *)buffer, 1023, stdin);
+
+    unsigned char key[KEY_LENGTH] = "01234567899876543210012345678998";
+    unsigned char iv[IV_LENGTH] = "0123456789AB";
+    unsigned char ciphertext[1024] = {0};
+    unsigned char tag[TAG_LENGTH] = {0};
+
+    unsigned char aad[] = "ThisIsAdditionalData";
+    int aad_len = sizeof(aad) - 1;
+
+    int ciphertext_len = gcm_encrypt(buffer, strlen((char *)buffer), aad, aad_len, key, iv, IV_LENGTH, ciphertext, tag);
+    if (ciphertext_len < 0) {
+        printf("Encryption failed\n");
+        return -1;
+    }
+
+    // Send ciphertext and tag to server
+    send(clientfd, ciphertext, ciphertext_len, 0);
+    send(clientfd, tag, TAG_LENGTH, 0);
+
+    close(clientfd);
+    return 0;
 }
