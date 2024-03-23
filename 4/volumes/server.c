@@ -100,17 +100,11 @@ int main() {
 
     unsigned char key[KEY_LENGTH] = "01234567899876543210012345678998";
     unsigned char iv[IV_LENGTH] = "0123456789AB";
-    unsigned char tag[TAG_LENGTH];
-    unsigned char ciphertext[BUFFER_SIZE];
-    unsigned char plaintext[BUFFER_SIZE];
+    unsigned char tag[TAG_LENGTH] = {0};
+    unsigned char ciphertext[BUFFER_SIZE] = {0};
+    unsigned char plaintext[BUFFER_SIZE] = {0};
     unsigned char aad[] = "ThisIsAdditionalData";
     int aad_len = sizeof(aad) - 1;
-
-    int ciphertext_len = read(clientfd, ciphertext, BUFFER_SIZE);
-    if (ciphertext_len < 0) {
-        printf("Error reading ciphertext from socket\n");
-        return -1;
-    }
 
     int tag_len = read(clientfd, tag, TAG_LENGTH);
     if (tag_len < 0) {
@@ -118,7 +112,22 @@ int main() {
         return -1;
     }
 
-    int plaintext_len = gcm_decrypt(ciphertext, ciphertext_len, aad, aad_len, tag, key, iv, IV_LENGTH, plaintext);
+    char differentiator;
+    n = read(clientfd, &differentiator, 1);
+    if(n < 0 || differentiator != '\n'){
+        printf("Error reading differentiator from socket.\n");
+        return -1;
+    }
+
+    int ciphertext_len = read(clientfd, buffer, BUFFER_SIZE);
+    if (ciphertext_len < 0) {
+        printf("Error reading ciphertext from socket\n");
+        return -1;
+    }
+
+    printf("Received ciphertext from buffer.\n");
+
+    int plaintext_len = gcm_decrypt(buffer, BUFFER_SIZE, aad, aad_len, tag, key, iv, IV_LENGTH, plaintext);
     if (plaintext_len < 0) {
         printf("Decryption failed\n");
         return -1;
@@ -126,7 +135,10 @@ int main() {
 
     printf("Decrypted message: %s\n", plaintext);
 
-    write(clientfd, "Message received and decrypted", 30);
+    if(write(clientfd, "Message received and decrypted", 30)<0){
+        printf("write failed\n");
+        return -1;
+    }
     close(clientfd);
     close(serverfd);
 

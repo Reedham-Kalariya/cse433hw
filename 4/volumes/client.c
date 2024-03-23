@@ -23,7 +23,7 @@ int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
 /* Create and initialize the context */
     ctx = EVP_CIPHER_CTX_new();
 /* Initialize the encryption operation. */
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, key, iv);
 /*
 * Set IV length if default 12 bytes (96 bits) is not appropriate
 */
@@ -77,7 +77,7 @@ int main(int argc, char * argv[]) {
     }
 
     server_addr.sin_family = AF_INET;
-    inet_pton(AF_INET, "127.0.0.1", &(server_addr.sin_addr));
+    inet_pton(AF_INET, "10.9.0.6", &(server_addr.sin_addr));
     server_addr.sin_port = htons(serverPort);
 
     // Connect to server
@@ -90,6 +90,9 @@ int main(int argc, char * argv[]) {
     unsigned char buffer[1024] = {0};
     fgets((char *)buffer, 1023, stdin);
 
+//    unsigned char tag[16];
+//    memset(tag,0,16);
+//
     unsigned char key[KEY_LENGTH] = "01234567899876543210012345678998";
     unsigned char iv[IV_LENGTH] = "0123456789AB";
     unsigned char ciphertext[1024] = {0};
@@ -98,9 +101,25 @@ int main(int argc, char * argv[]) {
     unsigned char aad[] = "ThisIsAdditionalData";
     int aad_len = sizeof(aad) - 1;
 
-    int ciphertext_len = gcm_encrypt(buffer, strlen((char *)buffer), aad, aad_len, key, iv, IV_LENGTH, ciphertext, tag);
+    int ciphertext_len = gcm_encrypt((unsigned char *)buffer, 1024, aad, aad_len, key, iv, IV_LENGTH, ciphertext, tag);
     if (ciphertext_len < 0) {
         printf("Encryption failed\n");
+        return -1;
+    }
+
+    if (write(clientfd, tag, 16) < 0) {
+        printf("Error prefixing tag with message to socket.\n");
+        return -1;
+    }
+
+    char differentiator = '\n';
+    if (write(clientfd, differentiator, 1)<0) {
+        print("Error putting differentiator to socket.\n");
+        return -1;
+    }
+
+    if(write(clientfd, ciphertext, ciphertext_len) < 0){
+        printf("Error writing ciphertext of the message to socket.\n");
         return -1;
     }
 
