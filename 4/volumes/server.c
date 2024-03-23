@@ -132,7 +132,8 @@ int main() {
         printf("Decryption failed\n");
         return -1;
     }
-
+    printf("tag: %s",tag);
+    printf("ciphertext: %s", buffer);
     printf("Decrypted message: %s\n", plaintext);
 
     if(write(clientfd, "Message received and decrypted", 30)<0){

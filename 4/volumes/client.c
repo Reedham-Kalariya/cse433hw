@@ -124,6 +124,8 @@ int main(int argc, char * argv[]) {
     }
 
     // Send ciphertext and tag to server
+    printf("tag: %s",tag);
+    printf("ciphertext: %s", ciphertext);
     send(clientfd, ciphertext, ciphertext_len, 0);
     send(clientfd, tag, TAG_LENGTH, 0);
 
