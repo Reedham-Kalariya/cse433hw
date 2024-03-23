@@ -113,7 +113,7 @@ int main() {
     }
 
     char differentiator;
-    n = read(clientfd, &differentiator, 1);
+    int n = read(clientfd, &differentiator, 1);
     if(n < 0 || differentiator != '\n'){
         printf("Error reading differentiator from socket.\n");
         return -1;

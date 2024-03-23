@@ -113,8 +113,8 @@ int main(int argc, char * argv[]) {
     }
 
     char differentiator = '\n';
-    if (write(clientfd, differentiator, 1)<0) {
-        print("Error putting differentiator to socket.\n");
+    if (write(clientfd, &differentiator, 1)<0) {
+        printf("Error putting differentiator to socket.\n");
         return -1;
     }
 
