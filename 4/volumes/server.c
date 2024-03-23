@@ -1,8 +1,19 @@
 //
 // Created by Reedham Kalariya on 3/18/24.
 //
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 #include <openssl/evp.h>
-
+#define BUFFER_SIZE 1024
+#define KEY_LENGTH 32 // AES-256 requires a 32 byte key
+#define IV_LENGTH 12  // GCM 12 byte IV for efficiency and security
+#define TAG_LENGTH 16 // GCM tag length
 int gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
                 unsigned char *aad, int aad_len,
                 unsigned char *tag,
@@ -24,7 +35,7 @@ int gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
 * Provide any AAD data. This can be called zero or more times as
 * required
 */
-    if(aad & aad_len > 0){
+    if(aad != NULL & aad_len > 0){
         EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len);
 
     }
